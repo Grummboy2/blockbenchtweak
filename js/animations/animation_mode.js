@@ -3,6 +3,7 @@ import Wintersky from 'wintersky';
 import { Mode } from "../modes";
 import { clipboard, fs } from "../native_apis";
 import { openMolangEditor } from "./molang_editor";
+import { WiggleBones } from "./wiggle_bones";
 import './mirror_animating'
 
 export const Animator = {
@@ -80,6 +81,7 @@ export const Animator = {
 	leave() {
 		Timeline.pause()
 		Animator.open = false;
+		WiggleBones.reset();
 
 		Canvas.scene.remove(WinterskyScene.space);
 		Canvas.scene.remove(Animator.motion_trail);
@@ -111,6 +113,9 @@ export const Animator = {
 			if (armature && !reduced_updates) {
 				Mesh.preview_controller.updateGeometry(mesh);
 			}
+		}
+		if (!reduced_updates) {
+			WiggleBones.reset();
 		}
 		Blockbench.dispatchEvent('display_default_pose', {reduced_updates});
 		if (!reduced_updates) Canvas.scene.updateMatrixWorld()
@@ -340,6 +345,22 @@ export const Animator = {
 		Canvas.scene.updateMatrixWorld();
 
 		Animator.resetLastValues();
+
+		// Wiggle Bones - capture targets after animation, then apply spring physics
+		if (settings.wiggle_bones_enabled && settings.wiggle_bones_enabled.value) {
+			Group.all.forEach(group => {
+				if (!group.wiggle_bone || !group.mesh) return;
+				WiggleBones.syncFromGroup(group);
+			});
+
+			Group.all.forEach(group => {
+				if (!group.wiggle_bone || !group.mesh) return;
+				WiggleBones.getOrCreate(group).setTargetFromCurrent();
+			});
+
+			WiggleBones.update(1/30);
+			Canvas.scene.updateMatrixWorld();
+		}
 
 		// Effects
 		Animator.resetParticles(true);
@@ -1220,5 +1241,6 @@ Object.assign(window, {
 	MolangParser,
 	Animator,
 	Wintersky,
-	WinterskyScene
+	WinterskyScene,
+	WiggleBones
 });

@@ -412,6 +412,7 @@ var format = new ModelFormat({
 	box_uv: true,
 	single_texture: true,
 	bone_rig: true,
+	wiggle_bones: true,
 	centered_grid: true,
 	animated_textures: true,
 	animation_files: true,

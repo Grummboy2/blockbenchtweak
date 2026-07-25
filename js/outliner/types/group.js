@@ -1,3 +1,4 @@
+import { createWigglePanelComponent } from '../../animations/wiggle_panel';
 
 export class Group extends OutlinerNode {
 	constructor(data, uuid) {
@@ -62,6 +63,9 @@ export class Group extends OutlinerNode {
 			this.constructor.preview_controller.setup(this);
 		}
 		Canvas.updateAllBones([this]);
+		if (this.wiggle_bone && typeof WiggleBones !== 'undefined') {
+			WiggleBones.getOrCreate(this);
+		}
 		return this;
 	}
 	select(event, is_outliner_click) {
@@ -234,6 +238,9 @@ export class Group extends OutlinerNode {
 		TickUpdates.selection = true;
 		Project.groups.remove(this);
 		delete OutlinerNode.uuids[this.uuid];
+		if (typeof WiggleBones !== 'undefined') {
+			WiggleBones.remove(this);
+		}
 		if (undo) {
 			elements.empty();
 			groups.empty();
@@ -617,6 +624,23 @@ new Property(Group, 'string', 'texture', {condition: {features: ['per_group_text
 //new Property(Group, 'vector2', 'texture_size', {condition: {formats: ['optifine_entity']}});
 new Property(Group, 'vector', 'skin_original_origin', {condition: {formats: ['skin']}});
 new Property(Group, 'number', 'color');
+new Property(Group, 'boolean', 'wiggle_bone', {default: false, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_stiffness', {default: 50, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_damping', {default: 5, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_mass', {default: 1, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_stiffness_rotation', {default: 50, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_damping_rotation', {default: 5, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_inertia', {default: 1, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_max_angle', {default: 45, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_max_distance', {default: 2, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_collision_radius', {default: 0, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'boolean', 'wiggle_gravity', {default: true, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'vector', 'wiggle_gravity_vector', {default: [0, -9.81, 0], condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_blend', {default: 1, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_air_drag', {default: 0, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_turbulence', {default: 0, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'number', 'wiggle_turbulence_speed', {default: 5, condition: {features: ['wiggle_bones']}});
+new Property(Group, 'boolean', 'wiggle_chain', {default: false, condition: {features: ['wiggle_bones']}});
 
 new NodePreviewController(Group, {
 	setup(group) {
@@ -953,132 +977,7 @@ Interface.definePanels(function() {
 			height: 400,
 			sidebar_index: 3,
 		},
-		component: {
-			template: `
-				<div>
-					<p class="panel_toolbar_label">${ tl('panel.element.origin') }</p>
-					<div class="toolbar_wrapper bone_origin"></div>
-
-				<div v-if="show_wiggle" style="border-top: 1px solid var(--color-border); margin: 8px 0; padding-top: 8px;">
-					<p class="panel_toolbar_label">Wiggle Bone</p>
-					<div class="dialog_bar" style="padding: 4px 12px;">
-						<label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-							<input type="checkbox" :checked="group.wiggle_bone" @change="toggleWiggleBone">
-							<span>Enable Wiggle Bone</span>
-						</label>
-					</div>
-
-					<div v-if="group.wiggle_bone">
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Stiffness:</label>
-							<input type="range" min="0" max="100" step="1" :value="group.wiggle_stiffness" @input="updateProp('wiggle_stiffness', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_stiffness }}</span>
-						</div>
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Damping:</label>
-							<input type="range" min="0" max="100" step="1" :value="group.wiggle_damping" @input="updateProp('wiggle_damping', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_damping }}</span>
-						</div>
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Mass:</label>
-							<input type="range" min="0.1" max="10" step="0.1" :value="group.wiggle_mass" @input="updateProp('wiggle_mass', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_mass }}</span>
-						</div>
-
-						<div style="border-top: 1px solid var(--color-border); margin: 6px 12px;"></div>
-						<p class="panel_toolbar_label" style="margin-top: 4px; font-size: 0.85em; opacity: 0.7;">Rotation Settings</p>
-
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Rot Stiffness:</label>
-							<input type="range" min="0" max="100" step="1" :value="group.wiggle_stiffness_rotation" @input="updateProp('wiggle_stiffness_rotation', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_stiffness_rotation }}</span>
-						</div>
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Rot Damping:</label>
-							<input type="range" min="0" max="100" step="1" :value="group.wiggle_damping_rotation" @input="updateProp('wiggle_damping_rotation', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_damping_rotation }}</span>
-						</div>
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Inertia:</label>
-							<input type="range" min="0" max="5" step="0.1" :value="group.wiggle_inertia" @input="updateProp('wiggle_inertia', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_inertia }}</span>
-						</div>
-
-						<div style="border-top: 1px solid var(--color-border); margin: 6px 12px;"></div>
-						<p class="panel_toolbar_label" style="margin-top: 4px; font-size: 0.85em; opacity: 0.7;">Limits</p>
-
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Max Angle:</label>
-							<input type="range" min="1" max="180" step="1" :value="group.wiggle_max_angle" @input="updateProp('wiggle_max_angle', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_max_angle }}°</span>
-						</div>
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Max Distance:</label>
-							<input type="range" min="0" max="20" step="0.1" :value="group.wiggle_max_distance" @input="updateProp('wiggle_max_distance', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_max_distance }}</span>
-						</div>
-						<div class="dialog_bar" style="padding: 2px 12px;">
-							<label class="name_space_left" style="min-width: 100px;">Collision:</label>
-							<input type="range" min="0" max="10" step="0.1" :value="group.wiggle_collision_radius" @input="updateProp('wiggle_collision_radius', $event.target.value)" style="flex: 1;">
-							<span style="min-width: 32px; text-align: right;">{{ group.wiggle_collision_radius }}</span>
-						</div>
-
-						<div style="border-top: 1px solid var(--color-border); margin: 6px 12px;"></div>
-						<p class="panel_toolbar_label" style="margin-top: 4px; font-size: 0.85em; opacity: 0.7;">Gravity</p>
-
-						<div class="dialog_bar" style="padding: 4px 12px;">
-							<label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
-								<input type="checkbox" :checked="group.wiggle_gravity" @change="updateProp('wiggle_gravity', $event.target.checked)">
-								<span>Enable Gravity</span>
-							</label>
-						</div>
-					</div>
-				</div>
-			</div>
-			`,
-			data() {
-				return {
-					group: null,
-					show_wiggle: false,
-					_update_key: 0,
-				}
-			},
-			methods: {
-				updateGroup() {
-					this._update_key++;
-					this.group = Group.first_selected || null;
-					this.show_wiggle = Format.wiggle_bones === true && !!this.group;
-				},
-				toggleWiggleBone() {
-					if (!this.group) return;
-					Undo.initEdit({groups: [this.group]});
-					this.group.wiggle_bone = !this.group.wiggle_bone;
-					if (this.group.wiggle_bone && typeof WiggleBones !== 'undefined') {
-						WiggleBones.getWiggleBone(this.group);
-					} else if (typeof WiggleBones !== 'undefined') {
-						WiggleBones.removeWiggleBone(this.group);
-					}
-					Undo.finishEdit('Toggle wiggle bone');
-					Animator.preview();
-				},
-				updateProp(prop, value) {
-					if (!this.group) return;
-					Undo.initEdit({groups: [this.group]});
-					this.group[prop] = parseFloat(value);
-					Undo.finishEdit('Update wiggle bone property');
-					Animator.preview();
-				}
-			},
-			mounted() {
-				this._selection_handler = () => this.updateGroup();
-				Blockbench.on('update_selection', this._selection_handler);
-				this.updateGroup();
-			},
-			beforeDestroy() {
-				Blockbench.removeListener('update_selection', this._selection_handler);
-			}
-
-		}
+		component: createWigglePanelComponent()
 	})
 })
 
