@@ -136,9 +136,6 @@ function setupSettings() {
 	new Setting('particle_tick_rate',				{category: 'preview', value: 30, type: 'number', min: 1, max: 1000, onChange() {
 		WinterskyScene.global_options.tick_rate = this.value;
 	}});
-	new Setting('wiggle_bones_enabled',			{category: 'preview', value: true, onChange() {
-		if (Animator.open) Animator.preview();
-	}});
 	new Setting('volume', 							{category: 'preview', value: 80, min: 0, max: 200, type: 'number'});
 	new Setting('audio_scrubbing',					{category: 'preview', value: true});
 	new Setting('save_view_per_tab',				{category: 'preview', value: true});
