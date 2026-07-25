@@ -1088,6 +1088,7 @@ var format = new ModelFormat({
 	box_uv_float_size: true,
 	single_texture: true,
 	bone_rig: true,
+	wiggle_bones: true,
 	centered_grid: true,
 	rotate_cubes: true,
 	integer_size: true,

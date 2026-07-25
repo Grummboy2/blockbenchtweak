@@ -395,6 +395,7 @@ var format = new ModelFormat({
 	per_texture_uv_size: true,
 	integer_size: true,
 	bone_rig: true,
+	wiggle_bones: true,
 	centered_grid: true,
 	texture_folder: true,
 	pbr: true,

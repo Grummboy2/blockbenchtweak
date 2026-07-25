@@ -702,6 +702,7 @@ new Property(ModelFormat, 'boolean', 'animation_mode');
 new Property(ModelFormat, 'boolean', 'texture_folder');
 new Property(ModelFormat, 'boolean', 'pbr');
 new Property(ModelFormat, 'enum', 'euler_order', {default: 'ZYX'});
+new Property(ModelFormat, 'boolean', 'wiggle_bones');
 
 
 const global = {
