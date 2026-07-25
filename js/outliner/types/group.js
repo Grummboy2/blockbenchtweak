@@ -977,9 +977,8 @@ Interface.definePanels(function() {
 					<p class="panel_toolbar_label">${ tl('panel.element.origin') }</p>
 					<div class="toolbar_wrapper bone_origin"></div>
 
-					<template v-if="has_wiggle_bones_feature && group">
-						<div style="border-top: 1px solid var(--color-border); margin: 8px 0;"></div>
-						<p class="panel_toolbar_label" style="margin-top: 8px;">Wiggle Bone</p>
+					<div v-if="show_wiggle" style="border-top: 1px solid var(--color-border); margin: 8px 0; padding-top: 8px;">
+						<p class="panel_toolbar_label">Wiggle Bone</p>
 						<div class="dialog_bar" style="padding: 4px 12px;">
 							<label style="display: inline-flex; align-items: center; gap: 6px; cursor: pointer;">
 								<input type="checkbox" :checked="group.wiggle_bone" @change="toggleWiggleBone">
@@ -987,7 +986,7 @@ Interface.definePanels(function() {
 							</label>
 						</div>
 
-						<template v-if="group.wiggle_bone">
+						<div v-if="group.wiggle_bone">
 							<div class="dialog_bar" style="padding: 2px 12px;">
 								<label class="name_space_left" style="min-width: 100px;">Stiffness:</label>
 								<input type="range" min="0" max="100" step="1" :value="group.wiggle_stiffness" @input="updateProp('wiggle_stiffness', $event.target.value)" style="flex: 1;">
@@ -1051,25 +1050,22 @@ Interface.definePanels(function() {
 									<span>Enable Gravity</span>
 								</label>
 							</div>
-						</template>
-					</template>
+						</div>
+					</div>
 				</div>
 			`,
 			data() {
 				return {
 					group: null,
+					show_wiggle: false,
 					_update_key: 0,
-				}
-			},
-			computed: {
-				has_wiggle_bones_feature() {
-					return Format.wiggle_bones === true;
 				}
 			},
 			methods: {
 				updateGroup() {
 					this._update_key++;
 					this.group = Group.first_selected || null;
+					this.show_wiggle = Format.wiggle_bones === true && !!this.group;
 				},
 				toggleWiggleBone() {
 					if (!this.group) return;
